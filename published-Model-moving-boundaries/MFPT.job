@@ -1,0 +1,12 @@
+#!/bin/csh
+
+#$ -o out.out
+#$ -pe smp 12
+#$ -q long
+#$ -N MFPTJob
+#$ -t 1-200
+
+setenv MATLABPATH ./
+
+module load matlab/9.0
+matlab -nodisplay -nosplash -r "MFPTLoop(${SGE_TASK_ID}); exit;"

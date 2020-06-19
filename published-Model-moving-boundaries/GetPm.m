@@ -1,0 +1,713 @@
+function GetPm(Ex)
+% Calculate Pm and graph all the figures from the data files produced by MFPTLoop.
+
+if (nargin == 0)
+    
+    %Ex = 'PNAS3B';
+    %Ex = '3BExtra'; %not included in final paper; 4B for different contact formation times tf 
+    %Ex = 'PNAS4A';
+    %Ex = 'PNAS4B';
+    %Ex = 'PNAS4C';
+
+    %Ex = 'PNAS5B';
+    %Ex = 'PNAS5C';
+    %Ex = '4C'; %not included in final paper
+    %Ex = 'PNAS6';
+    %Ex = '4E'; %not included in final paper
+    %Ex = 'PNAS5E';
+    %Ex = '5Extra'; %not included in final paper
+    %Ex = 'S5A'; %not included in final paper
+end
+
+dAdt = 0.00;
+D = 0.05;
+R0 = 0.22;
+tf = 120;
+Am = 415;
+Tm = 100;
+%R = @(s) sqrt(R0^2 + dAdt.*s/pi);
+
+%kt = @(s) abs(400*pi*D./(log(abs(450./(pi*s.^2))) -1));
+kt = @(s) abs(4*Tm*pi*D./(log(abs(Am./(pi*s.^2))) -1));
+close all;
+
+switch Ex
+    case 'PNAS4B'
+        %% Figure 4B.
+        R0 = 0.05;
+        
+        dAdt = linspace(0,0.03,100);
+        t = linspace(0,118,100);
+        dvals = [0.05, 0.027];
+        
+        % Total calculation 80000
+        % 50 runs with 1600 each
+        
+        [DADT,T,DVALS] = meshgrid(dAdt,t,dvals);
+        
+        Ps = [];
+        ind = [];
+        
+        for j = 1:50
+            filename = ['./Fig3BData/Fig3BRunN=',num2str(j),'.dat'];
+            fid = fopen(filename,'r');
+            A = fscanf(fid,'%d %f',[2,Inf])';
+            
+            fclose(fid);
+            
+            ind = [ind; A(:,1)];
+            Ps = [Ps; A(:,2)];
+            
+        end
+        
+        
+        Ps = reshape(Ps,numel(dAdt),numel(t),numel(dvals));
+        Ps1 = Ps(:,:,1); Ps2 = Ps(:,:,2);
+        
+        Pm1 = zeros(size(t)); Pm2 = Pm1; Rf = Pm1;
+        
+        for j = 1:numel(dAdt)
+            R = sqrt(R0^2 + dAdt(j)*t/pi);
+            kt1 = abs(4*Tm*pi*dvals(1)./(log(abs(Am./(pi*R.^2))) -1));
+            kt2 = abs(4*Tm*pi*dvals(2)./(log(abs(Am./(pi*R.^2))) -1));
+            
+            Rf(j) = sqrt(R0^2 + dAdt(j)*(t(end)+2)/pi);
+            
+            for i = 1:(length(t)-1)
+                dtc = t(i+1)-t(i);
+                Ntc1 = dtc*kt1(i);
+                Ntc2 = dtc*kt2(i);
+                
+                if (i==1)
+                    p1 = (1-Ps1(i,j))^Ntc1;
+                    p2 = (1-Ps2(i,j))^Ntc2;
+                else
+                    dtc = t(i)-t(i-1);
+                    Ntc1 = dtc*kt1(i);
+                    Ntc2 = dtc*kt2(i);
+                    
+                    p1 = p1*(1-Ps1(i,j))^Ntc1;
+                    p2 = p2*(1-Ps2(i,j))^Ntc2;
+                    
+                end
+            end
+            Pm1(j) = 1 - p1;
+            Pm2(j) = 1 - p2;
+        end
+        
+        figure(1);
+        
+        %plot(log10(R),Pm2,'-r',log10(R), Pm1,'-b',log10(R),Pm2-Pm1,'g')
+        
+        plot(Rf, Pm1,'b',Rf, Pm2,'r');
+        
+        legend('SLBs (D_{T} = 0.05)','glass (D_{T} = 0.027)','Location','northeast'); legend boxoff;
+        
+        %set(gca,'Xtick',0:4,'XTickLabel',{'10^{0}', '10^{1}','10^{2}','10^{3}','10^{4}'})
+        ylabel({'Triggering Probability'});
+        box on;  %ylim([0,1]); xlim([0 4]);
+        xlabel('Final CCZ radius [\mum]');
+        
+        set(gca,'fontsize',18);
+        axis([R0 0.8 0 1]);
+        hold off;
+    case '3BExtra'
+        %% Figure 3B Extra.
+        R0 = 0.05;
+        
+        dAdt = linspace(0,0.03,160);
+        t1 = linspace(0,180,160);
+        
+        i2 = find(t1<118);
+        i3 = find(t1<58);
+        t2 = t1(i2);
+        t3 = t1(i3);
+        
+        % Total calculation 80000
+        % 50 runs with 1600 each
+        
+        [DADT,T] = meshgrid(dAdt,t1);
+        
+        Ps = [];
+        ind = [];
+        
+        for j = 1:50
+            filename = ['./Fig3BData/Fig3BExtraRunN=',num2str(j),'.dat'];
+            fid = fopen(filename,'r');
+            A = fscanf(fid,'%d %f',[2,Inf])';
+            
+            fclose(fid);
+            
+            ind = [ind; A(:,1)];
+            Ps = [Ps; A(:,2)];
+            
+        end
+        
+        Ps = reshape(abs(Ps),numel(dAdt),numel(t1));
+        
+        Pm1 = zeros(size(dAdt)); Pm2 = Pm1; Pm3 = Pm1;
+        Rf1 = Pm1;  Rf2 = Pm1; Rf3 = Pm1;
+        
+        for j = 1:numel(dAdt)
+            R1 = sqrt(R0^2 + dAdt(j)*t1/pi);
+            R2 = sqrt(R0^2 + dAdt(j)*t2/pi);
+            R3 = sqrt(R0^2 + dAdt(j)*t3/pi);
+            
+            kt1 = abs(4*Tm*pi*D./(log(abs(Am./(pi*R1.^2))) -1));
+            kt2 = abs(4*Tm*pi*D./(log(abs(Am./(pi*R2.^2))) -1));
+            kt3 = abs(4*Tm*pi*D./(log(abs(Am./(pi*R3.^2))) -1));
+            
+            Rf1(j) = sqrt(R0^2 + dAdt(j)*(t1(end)+2)/pi);
+            Rf2(j) = sqrt(R0^2 + dAdt(j)*(t2(end)+2)/pi);
+            Rf3(j) = sqrt(R0^2 + dAdt(j)*(t3(end)+2)/pi);
+            
+            for i = 1:(length(t1)-1)
+                dtc = t1(i+1)-t1(i);
+                Ntc1 = dtc*kt1(i);
+                
+                if (i==1)
+                    p1 = (1-Ps(i,j))^Ntc1;
+                else
+                    dtc = t1(i)-t1(i-1);
+                    Ntc1 = dtc*kt1(i);
+                    p1 = p1*(1-Ps(i,j))^Ntc1;
+                end
+            end
+            Pm1(j) = 1 - p1;
+            
+            for i = 1:(length(t2)-1)
+                dtc = t2(i+1)-t2(i);
+                Ntc1 = dtc*kt2(i);
+                
+                if (i==1)
+                    p1 = (1-Ps(i,j))^Ntc1;
+                else
+                    dtc = t2(i)-t2(i-1);
+                    Ntc1 = dtc*kt2(i);
+                    p1 = p1*(1-Ps(i,j))^Ntc1;
+                end
+            end
+            Pm2(j) = 1 - p1;
+            
+            for i = 1:(length(t3)-1)
+                dtc = t3(i+1)-t3(i);
+                Ntc1 = dtc*kt3(i);
+                
+                if (i==1)
+                    p1 = (1-Ps(i,j))^Ntc1;
+                else
+                    dtc = t3(i)-t3(i-1);
+                    Ntc1 = dtc*kt3(i);
+                    p1 = p1*(1-Ps(i,j))^Ntc1;
+                end
+            end
+            Pm3(j) = 1 - p1;
+            
+        end
+        
+        figure(1);
+        
+        %plot(log10(R),Pm2,'-r',log10(R), Pm1,'-b',log10(R),Pm2-Pm1,'g')
+        
+        plot(Rf1, Pm1,'b',Rf2, Pm2,'r',Rf3, Pm3,'g');
+        
+        legend('t = 180s','t = 120s','t = 60s','Location','northwest'); legend boxoff;
+        
+        %set(gca,'Xtick',0:4,'XTickLabel',{'10^{0}', '10^{1}','10^{2}','10^{3}','10^{4}'})
+        ylabel({'Triggering Probability'});
+        box on;  %ylim([0,1]); xlim([0 4]);
+        xlabel('Final CCZ radius [\mum]');
+        
+        set(gca,'fontsize',18);
+        axis([0.2 0.6 0 1]);
+        hold off;
+    case 'PNAS4A'
+        %% Figure PNAS4A.
+        
+        openfig('Fif3cD=5e-2.fig');
+        %openfig('Fif3cD=27e-3.fig');
+        
+        %         r0 = 0.9;
+        %         D1 = 0.027;
+        %         D2 = 0.05;
+        %
+        %         R = logspace(-3,1,400);
+        %
+        %         w = @(D,R) (R.^2/(4*D))*( 1 - r0^2);
+        %
+        %         plot(log10(R),w(D1,R),'-b',log10(R),w(D2,R),'-r');
+        %
+        %         %  addtextbox([0.685 0.35 0.35 0.35],'$r(t_{\mbox{trigg}},\\ \mbox{glass})$','b');
+        %         %  addtextbox([0.335 0.35 0.0 0.0],'$r(t_{\mbox{trigg}},\mbox{SLBs})$','r');
+        %
+        %         legend('glass (D_{T} = 0.027)','SLBs (D_{T} = 0.05)','Location','northwest'); legend boxoff;
+        %         set(gca,'Xtick',-3:1,'XTickLabel',{'10^{-1}','10^{0}','10^{1}', '10^{2}','10^{3}'})
+        %         %set(gca,'Ytick',-4:4,'YTickLabel',{'10^{-4}','10^{-3}','10^{-2}','10^{-1}', '10^{0}','10^{1}','10^{2}','10^{3}','10^{4}'})
+        %         ylabel({'Mean Occupancy Time'; 'inside CCZ [s]'});
+        %         box on;  ylim([0,4]);xlim([-3 1]);
+        %         xlabel('close contact radius [\mum]');
+        %
+        %         set(gca,'fontsize',18);
+        %         % axis([0.15 2 0 7]);
+        %         hold off;
+    case 'PNAS3B'
+        %% Figure 3B.
+        
+        n = 100;
+        
+        t = logspace(0,4,260);
+        t = [0:0.01:0.99 t];
+        
+        dadt = logspace(-3,0,100);
+        
+        [T,DADT] = meshgrid(t,dadt);
+        
+        dt = diff(t);
+        
+        Ps1 = zeros(size(T));
+        Ps2 = zeros(size(T));
+        
+        for j = 1:n
+            filename = ['./Fig3DDataRev1/Fig3DRunN=',num2str(j),'S=2.dat'];
+            fid = fopen(filename,'r');
+            A = fscanf(fid,'%f %f %f',[3,Inf])';
+            fclose(fid);
+            Ps1(j,:) = abs(A(:,3));
+            
+            filename = ['./Fig3DDataRev1/Fig3DRunN=',num2str(j),'S=20.dat'];
+            fid = fopen(filename,'r');
+            A = fscanf(fid,'%f %f %f',[3,Inf])';
+            fclose(fid);
+            Ps2(j,:) = abs(A(:,3));
+        end
+        
+        R = sqrt(R0^2 + DADT.*T/pi);
+        
+        for j = 1:n
+            for i = 1:length(t)
+                dtc = 0;%t(i+1)-t(i);
+                Ntc = dtc*kt(sqrt(R0^2 + dadt(j).*t(i)/pi));
+                if (i==1)
+                    Pm1(j,i) = (1-Ps1(j,i))^Ntc;
+                    Pm2(j,i) = (1-Ps2(j,i))^Ntc;
+                else
+                    dtc = t(i)-t(i-1);
+                    Ntc = dtc*kt(sqrt(R0^2 + dadt(j).*t(i-1)/pi));
+                    Pm1(j,i) = Pm1(j,i-1)*(1-Ps1(j,i))^Ntc;
+                    Pm2(j,i) = Pm2(j,i-1)*(1-Ps2(j,i))^Ntc;
+                    
+                end
+            end
+            
+        end
+        Pm1 = 1- Pm1;
+        Pm2 = 1- Pm2;
+        %k = 20;
+        %plot(log10(t),Pm(k,:),log10(t),(Pm(k,:)-0.5).^2)
+        %plot(log10(t),Pm(k,:),'-k')
+        
+        tc1 = zeros(1,n);
+        tc2 = zeros(1,n);
+        
+        for j = 1:n
+            I1 = find( (Pm1(j,:)>0.5),1);
+            I2 = find( (Pm2(j,:)>0.5),1);
+            if (I1>1)
+                tc1(j) = fzero(@(x) spline(t,Pm1(j,:),x)-0.5, t(I1));
+            else
+                tc1(j) = t(1);
+            end
+            if (I2>1)
+                tc2(j) = fzero(@(x) spline(t,Pm2(j,:),x)-0.5, t(I2));
+            else
+                tc2(j) = t(1);
+            end
+        end
+        
+        plot(log10(tc1+2),log10(dadt),'-r','linewidth',2)
+        hold on;
+        plot(log10(tc2+20),log10(dadt),'-b','linewidth',2)
+        plot(log10(2)*[1 1], [-5 0],':k','linewidth',2);
+        plot(log10(20)*[1 1], [-5 0],':k','linewidth',2);
+        hold off
+        
+        figure(1);
+        
+        legend('t_{min} = 2s (CDC45/Lck 2.3:1)','t_{min} = 20s','Location','Northeast'); legend boxoff;
+        
+        set(gca,'Xtick',0:4,'XTickLabel',{'10^{0}', '10^{1}','10^{2}', '10^{3}', '10^{4}'})
+        set(gca,'Ytick',-3:0,'YTickLabel',{'10^{-3}','10^{-2}','10^{-1}','10^{0}'})
+        ylabel({'CCZ growth rate [\mum^2s^{-1}]'});
+        xlabel('Time to trigger [s]');
+        
+        xlim([0 4])
+        ylim([-3 0 ])
+        
+        set(gca,'fontsize',18);    box on;
+        % axis([0.15 2 0 7]);
+        hold off;
+    case 'PNAS4C'
+        %% Figure 4C.
+        
+        R0 = 0.05;
+        
+        r = linspace(R0,5,500);
+        dvals = [0.05, 0.027];
+        
+        dt = 1e-1;
+        t = 0:dt:118;
+        
+        ind = []; Ps = [];
+        
+        for j = 1:10
+            filename = ['./Fig3EData/Fig3ERunN=',num2str(j),'.dat'];
+            fid = fopen(filename,'r');
+            A = fscanf(fid,'%d %f',[2,Inf])';
+            
+            fclose(fid);
+            
+            ind = [ind; A(:,1)];
+            Ps = [Ps; abs(A(:,2))];
+            
+        end
+        
+        Ps = reshape(Ps,numel(dvals),numel(r));
+        Ps1 = Ps(1,:); Ps2 = Ps(2,:);
+        T1 = zeros(size(r)); T2 = T1;
+        
+        %plot(r,Ps1,'b',r,Ps2,'r')
+        %figure(2);
+        
+        for j = 1:numel(r)
+            kt1 = abs(4*Tm*pi*dvals(1)./(log(abs(Am./(pi*r(j).^2))) -1));
+            kt2 = abs(4*Tm*pi*dvals(2)./(log(abs(Am./(pi*r(j).^2))) -1));
+            
+            T1(j) = Tm *pi*R0^2 * Ps1(j);
+            T2(j) = Tm *pi*R0^2 * Ps2(j);
+            
+            T1(j) = T1(j) + 118*kt1*Ps1(j);
+            T2(j) = T2(j) + 118*kt2*Ps2(j);
+            
+        end
+        
+        loglog(r,T1,'b',r,T2,'r')
+        
+        legend('SLBs (D_{T} = 0.05)','glass (D_{T} = 0.027)','Location','northwest'); legend boxoff;
+        
+        %set(gca,'Xtick',0:4,'XTickLabel',{'10^{0}', '10^{1}','10^{2}','10^{3}','10^{4}'})
+        ylabel({'Numeber of TCRs in CCZ'});
+        box on;  ylim([0.01,10000]); xlim([0.1 10]);
+        xlabel('CCZ radius [\mum]');
+        
+        set(gca,'fontsize',18);
+        xlim([0 5]);
+        hold off;
+    case 'S5A'
+        %% Figure S5A.
+        
+        R0 = 0.05;
+        
+        r = linspace(R0,5,500);
+        dvals = [0.05, 0.027];
+        
+        dt = 1e-1;
+        t = 0:dt:118;
+        
+        ind = []; Ps = [];
+        
+        for j = 1:10
+            filename = ['./Fig3EData/Fig3ERunN=',num2str(j),'.dat'];
+            fid = fopen(filename,'r');
+            A = fscanf(fid,'%d %f',[2,Inf])';
+            
+            fclose(fid);
+            
+            ind = [ind; A(:,1)];
+            Ps = [Ps; abs(A(:,2))];
+            
+        end
+        
+        Ps = reshape(Ps,numel(dvals),numel(r));
+        Ps1 = Ps(1,:); Ps2 = Ps(2,:);
+        T = zeros(2,length(r));
+        
+        %plot(r,Ps1,'b',r,Ps2,'r')
+        %figure(2);
+        
+        for j = 1:numel(r)
+            kt1 = abs(4*Tm*pi*dvals(1)./(log(abs(Am./(pi*r(j).^2))) -1));
+            
+            T(:,j) = Tm *pi*R0^2 * Ps1(j);
+            
+            T(1,j) = T(1,j) + (60-2)*kt1*Ps1(j);
+            T(2,j) = T(2,j) + (180-2)*kt1*Ps1(j);
+            
+        end
+        
+        plot(r,T(1,:),'b',r,T(2,:),'r')
+        
+        legend('60sec','180sec ','location','northwest'); legend boxoff;
+        
+        %set(gca,'Xtick',0:4,'XTickLabel',{'10^{0}', '10^{1}','10^{2}','10^{3}','10^{4}'})
+        ylabel({'Numeber of TCRs in CCZ'});
+        box on;  %ylim([0,1]); xlim([0 4]);
+        xlabel('CCZ radius [\mum]');
+        
+        set(gca,'fontsize',18);
+        xlim([0 5]);
+        hold off;
+    case 'PNAS5C'
+        %% Figure 5C.
+        T = logspace(log10(2),8,120);
+        
+        % r0 = 0.22, M = 0.
+        
+        Ps = 1.1822e-06;
+        R0 = 0.22;
+        
+        Pm = 1 - (1-Ps).^(kt(R0)*(T-2));
+        Ph = 2+ log(0.5)/(kt(R0)*log(1-Ps));
+        
+        figure(1);
+        
+        hold on;
+        
+        plot(log10(T),Pm,'-b',log10(Ph),0.5,'b.','markersize',16);
+        plot(log10(Ph)*[0,1,1],[0.5,0.5,0],'b:');
+        ylim([0 1.1]);
+        
+        addtextbox([0.6 0.5 0.4 0.3],'$r_0 = 0.22 a\mu m$','b');
+        
+        % r0 = 1.5*0.22, M = 0.
+        
+        Ps = 9.1910e-04;
+        R0 = 1.5*0.22;
+        
+        % r0 = 2 * 0.22, M = 0;.
+        
+        %Ps = 0.0094;
+        %R0 = 2*0.22;
+        
+        
+        Pm = 1 - (1-Ps).^(kt(R0)*(T-2));
+        Ph = 2+ log(0.5)/(kt(R0)*log(1-Ps));
+        
+        plot(log10(2)*[1,1],[0,1.1],'--k');
+        
+        plot(log10(T),Pm,'-r',log10(Ph),0.5,'r.','markersize',16);
+        plot(log10(Ph)*[1,1],[0.0,0.5],'r:');
+        
+        addtextbox([0.35 0.5 0.1 0.3],'$r = 1.5r_0$','r');
+        
+        set(gca,'Xtick',0:8,'XTickLabel',{'10^0', '10^1', '10^2', '10^3','10^4','10^5', '10^6', '10^7', '10^8'})
+        
+        box on;
+        xlabel('contact duration [s]');
+        ylabel('Triggering probability');
+        set(gca,'fontsize',18);
+        hold off;
+    case 'PNAS5B'
+        %% Figure 5B.
+        D = 0.05; b = 1/sqrt(pi*100);
+        T = logspace(log10(2),8,200);
+        R0 = 0.22;
+        
+        %Ps value for  [M=0]
+        Ps = 1.1822e-06;
+        
+        
+        Pm = 1 - (1-Ps).^(kt(R0)*(T-2));
+        Ph = 2 + log(0.5)/(kt(R0)*log(1-Ps));
+        
+        figure(3);
+        
+        hold on;
+        
+        plot(log10(T),Pm,'-b',log10(Ph),0.5,'b.','markersize',16)
+        plot(log10(Ph)*[0,1,1],[0.5,0.5,0],'b:');
+        ylim([0 1.1]);
+        
+        addtextbox([0.675 0.5 0.4 0.3],'$r_0 = 0.22 \mu m$','b');
+        
+       
+        %Ps value for [M=10], k_off = 0.1:
+        Ps = 0.0316;
+ 
+        
+        Pm = 1 - (1-Ps).^(kt(R0)*(T-2));
+        Ph = 2 + log(0.5)/(kt(R0)*log(1-Ps));
+        
+        plot(log10(2)*[1,1],[0,1.1],'--k')
+        
+        plot(log10(T),Pm,'-m',log10(Ph),0.5,'m.','markersize',16)
+        plot(log10(Ph)*[1,1],[0.0,0.5],'m:');
+        
+        addtextbox([0.235 0.5 0.3 0.3],'$k_{\mbox{off}} = 0.1$','m');
+        
+        %Ps value for  [M=300], k_off = 50.
+        
+        Ps = 8.3703e-06;
+        
+        Pm = 1 - (1-Ps).^(kt(R0)*(T-2));
+        Ph = 2 + log(0.5)/(kt(R0)*log(1-Ps));
+        
+        plot(log10(T),Pm,'-r',log10(Ph),0.5,'r.','markersize',16)
+        plot(log10(Ph)*[1,1],[0.0,0.5],'r:');
+        
+        addtextbox([0.385 0.4 0.3 0.3],'$k_{\mbox{off}} = 50$','r');
+        
+        box on;
+        xlabel('contact duration [s]');
+        ylabel('Triggering probability');
+        set(gca,'fontsize',18);
+        set(gca,'Xtick',0:8,'XTickLabel',{'10^0', '10^1', '10^2', '10^3','10^4','10^5','10^6', '10^7', '10^8'})
+        
+        hold off;
+    case '4C'
+        %% Figure 4C.
+        fid = fopen('Fig4CData.dat','r');
+        A = fscanf(fid,'%f %f %f',[3,Inf])';
+        fclose(fid);
+        
+        [T, I] = sort(A(:,1));
+        figure(1);
+        
+        hold on;
+        cols = {'-r','-b'};
+        for j = 2:3
+            P = A(I,j);
+            Pm = 1 - (1-P).^(kt(R0)*118);
+            plot(log10(1./T),Pm,cols{j-1},'linewidth',2)
+        end
+        box on;
+        xlabel('Life-time of TCR/pMHC complex [s]');
+        ylabel('Triggering probability');
+        xlim([-3 1]);
+        set(gca,'Xtick',-3:1,'XTickLabel',{'10^{-3}','10^{-2}', '10^{-1}', '10^0','10^1'});
+        set(gca,'fontsize',18);
+        %legend('M=30','M=300');
+        hold off;
+    case 'PNAS6'
+        %% Figure 6.
+        %fid = fopen('Fig4DDataD=5e-3.dat','r');
+        %fid = fopen('Fig4DDataKONDouble.dat','r');
+        %fid = fopen('Fig4DDataKONQuad.dat','r');
+        %fid = fopen('Fig4DDataKONTen.dat','r');
+        fid = fopen('Fig4DDataKON1Hun.dat','r');
+        %fid = fopen('Fig4DDataKON1K.dat','r');
+        %fid = fopen('Fig4DDataH=15e-3.dat','r');
+        
+        A = fscanf(fid,'%f %f',[2,Inf])';
+        fclose(fid);
+        kon = 100*[1.2e-2, 3.5e-3, 4.0e-6, 4.4e-6, 2.7e-5 1.3e-5];
+        koff = [10.8, 4.7, 1.4, 2.6, 1.3, 2.4];
+        M = [30 30 300 300 30 30];
+        
+        P = A(:,2);
+        Pm = 1 - (1-P).^(kt(R0)*(tf-2));
+        
+        [~,I] = sort(Pm);
+        
+        P = A(I,2);
+        for n = 1:6
+            %j = A(n,1);
+            j = I(n);
+            fprintf(1,'[M] kon = %4.2e,  koff = %4.1f, Binding Rate = %3.2e,  Triggering Prob. = %6.5e\n',M(j)*kon(j),koff(j),kon(j)*M(j)/(koff(j)),Pm(j));
+        end
+    case '4E'
+        %% Figure 4E.
+        
+        fid = fopen('Fig4EData.dat','r');
+        A = fscanf(fid,'%f %f %f',[3,Inf])';
+        fclose(fid);
+        
+        M = [0 30];
+        [R, I] = sort(A(:,1));
+        
+        Pm1 = abs(A(I,2));
+        Pm2 = abs(A(I,3));
+        
+        Ph1 = 2+ log(1-0.5)./(kt(R).*log(1-Pm1));
+        Ph2 = 2+ log(1-0.5)./(kt(R).*log(1-Pm2));
+        
+        figure(1);
+        
+        %plot(R, Pm1,'-k',R,Pm2,'-b')
+        plot(R, log10(Ph1),'-b',R,log10(Ph2),'-r')
+        legend('LITT','pMHC'); legend boxoff;
+        set(gca,'Ytick',0:7,'YTickLabel',{'10^0', '10^1', '10^2', '10^3','10^4','10^5','10^6', '10^7'})
+        
+        box on;
+        xlabel('single close contact radius [\mum]');
+        ylabel({'Minimum close contact duration';'for triggering [s]'});
+        set(gca,'fontsize',18);
+        axis([0.15 2 0 7]);
+        hold off;
+    case 'PNAS5E'
+        %% Figure 5E.
+        
+        fid = fopen('Fig4FData.dat','r');
+        A = fscanf(fid,'%f %f %f %f %f %f',[7,Inf])';
+        fclose(fid);
+        
+        [R, I] = sort(A(:,1));
+        
+        figure(1);
+        hold on;
+        
+        cols = {'r-','b-','m-','g-','k-','-y'};
+        
+        for j = 1:6
+            Ps = abs(A(I,j+1));  % M = 0.
+            Pm = 1 - (1-Ps).^(kt(R)*(120-2));
+            plot(log10(R),Pm,cols{j},'linewidth',2);
+        end
+        
+        %plot(log10(R),Pm2,'-r',log10(R), Pm1,'-b',log10(R),Pm2-Pm1,'g')
+        
+        legend('LITT', 'k_{off}=1','k_{off}=5','k_{off}=10','k_{off}=20','k_{off}=50','location','northwest');
+        %legend boxoff;
+        %legend('pMHC (30), k_{off}=0.5','LITT','pMHC only'); legend boxoff;
+        
+        set(gca,'Xtick',-3:1,'XTickLabel',{'10^{-3}','10^{-2}','10^{-1}','10^{-0}'})
+        
+        box on;
+        xlabel('single close contact radius [\mum]');
+        ylabel({'Triggering Probability'});
+        set(gca,'fontsize',18);
+        axis([-3 0 0 1]);
+        hold off;
+        
+    case '5Extra'
+        
+        % Agonist data - M = 10, Koff = 0.1.
+        P_a = 0.1970;
+        % Non agonist data - M = 300, Koff = 50.
+        P_na = 7.4591e-04;
+        
+        dt = 1e-1;
+        t = 0:dt:118;
+        
+        frac = [1/10 1/30 1/300];
+        
+        figure('color','w');
+        
+        for j = 1:length(frac)
+            
+            Ps = (1-frac(j))*P_na + frac(j)*P_a;
+            Pm = 1 - (1-Ps).^(kt(R0)*t);
+            
+            hold on;
+            plot(t,Pm,'linewidth',2)
+            hold off;
+        end
+        box on;
+        hleg = legend('1/10','1/30','1/300' ,'location','northwest');  
+        title('Agonist fraction');
+        xlabel('Life-time of TCR/pMHC complex [s]');
+        ylabel('Triggering probability');
+        
+end
+function out = addtextbox(pos,str,col)
+out = [];
+annotation('textbox',pos,'String',str,'linestyle','none','FitBoxToText','on','Interpreter','latex','fontsize',18,'color',col);

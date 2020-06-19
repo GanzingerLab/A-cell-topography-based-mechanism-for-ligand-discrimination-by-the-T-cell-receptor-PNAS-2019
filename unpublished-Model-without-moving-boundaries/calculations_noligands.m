@@ -1,0 +1,292 @@
+% calculation of the TCR triggering in the absence of ligand (LIT) for
+% various conditions
+close all;
+clear all;
+
+% General parameter values that is used for all figures
+D=0.05; % Diffusion rate (µm2/s)
+r=0.1; % Radius of contact area (µm)
+tmin=2; % Min time for triggering
+%...................................................................
+%...................................................................
+
+% Fig 1b (Probability VS radius) - Eq2 in mathematical notes 
+figure(1)
+
+D = 0.027;
+rV=0.1:0.05:10; % Different radius
+p2=exp(-tmin./(rV.^2./(8.*D)));
+semilogx(rV,p2,'b')
+hold on
+D = 0.05;
+p2=exp(-tmin./(rV.^2./(8.*D)));
+
+exp(-tmin./(0.7.^2./(8.*D)))
+% Probability
+semilogx(rV,p2,'r')
+ylabel('Probability that a TCR stay longer than 2 sec')
+xlabel('CCZ radius (µm)')
+
+%...................................................................
+%...................................................................
+
+%  Fig 1c (change time & growth rate) - Eq4 in mathematical note
+figure(2)
+gV=[0.01 0.1  1  10]; % Different growth rates (µm2/s)
+t=0:1000; % Different time points (s) 1 - 1000 seconds
+p1=exp(-tmin./((gV(1).*t./(pi.* 8.*D)))); %g = 0.01 µm2/s
+semilogx(t,p1,'c')
+hold on
+p1=exp(-tmin./((gV(2).*t./(pi.* 8.*D)))); %g = 0.1 µm2/s
+semilogx(t,p1,'y')
+hold on
+p1=exp(-tmin./((gV(3).*t./(pi.* 8.*D)))); %g = 1 µm2/s
+semilogx(t,p1,'r')
+hold on
+p1=exp(-tmin./((gV(4).*t./(pi.* 8.*D)))); %g = 10 µm2/s
+semilogx(t,p1,'b')
+ylabel('Probability that a TCR stay longer than 2 sec')
+xlabel('Time (s)')
+legend('g=0.01','g=0.1','g=1','g=10')
+
+%...................................................................
+%...................................................................
+  
+%Fig 1d (growth rate VS time to trigger)- Eq5 in mathematical note
+P_unbound=0.2; % Probability that a TCR trigger (fix to some arbitrary value between 0-1)
+gV=0.01:0.01:10; % Differenet growth rates (µm2/s)
+
+figure(3)
+%CD45/Lck = 2.3:1 (ratio that we observe inside ccz)
+tt2=-(tmin.*8.*D.*pi)./(log(P_unbound).*gV); % Time to trigger
+loglog(tt2,gV,'r')
+hold on
+
+%CD45/Lck = 5:1 (ratio that we observe outside ccz) -> change tmin to 20s
+tmin2=20; % It takes 10 fold longer time to trigger with CD45/Lck ratio = 2.3:1
+tt2=-(tmin2.*8.*D.*pi)./(log(P_unbound).*gV);
+loglog(tt2,gV,'b--')
+ylabel('Growth rate (µm2/s)')
+xlabel('Time to trigger (s)')
+axis([1 10000 0.01 10])
+legend('CD45/Lck 2.3:1','CD45/Lck 5:1')
+
+
+%...................................................................
+%...................................................................
+
+%Fig 1e WITHOUT pMHC (probability that LIT (at least one TCR triggers) occur during a real cell-to-cell contact)- Eq6 in mathematical note
+
+rV=0.01:0.01:10; % Different size of ccz (change radius (µm) of ccz)
+
+% Calc number of possible TCR passages (number of TCR that might trigger during a "real" cell-to-cell contact) %%%%%
+TCR=100;% 100µm2 Density of TCR
+area=rV.^2.*pi; % Area of ccz
+numb_TCRs=TCR.*area; % Total number of TCR that an exist in a ccz
+numb_TCRs=numb_TCRs%*10; % Assum that 10 ccz exist in a "real" cell-to-cell contact
+tao=rV.^2./(8.*D); % Time in CCZ
+tot_time=3*60; % 3 min of a "real" cell-to-cell contact betweem T cell and APC
+TCRpassages=round((tot_time./tao).*numb_TCRs); % Total number of TCRs that will exist in the cczs during the 3 min
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Calc probab that an unbound TCR stay longer than 2 sec during 180 sec
+p=exp(-tmin./(rV.^2./(8.*D)));
+pr1=1 - binopdf(0,TCRpassages,p); % It rounds to zero is less than 10^-10
+
+figure(4)
+semilogx(tao,pr1,'b')
+ylabel('Probability that at least one TCR stay > 2s in a ccz during a cell-to-cell contact')
+xlabel('CCZ radius (µm)')
+
+
+
+%...................................................................
+%...................................................................
+
+%Fig 3g & h WITHOUT pMHC
+TCRpassagesC=226195; % If the ccz increases the number of TCR passages is still the same so we can fix it to 226195 (as used above)
+taoV=0:0.01:1000; % Different residence time (tao)
+p=exp(-tmin./taoV);
+pr1=1 - binopdf(0,TCRpassagesC,p); % It rounds to zero is less than 10^-10
+
+
+figure(5) %Fig 3g 
+plot(taoV,pr1,'b')
+hold on
+% Add a vectical line at tao = 0.68
+x=[0.68,0.68];
+y=[0,1];
+plot(x,y,'r')
+ylabel('Probability that at least one TCR stay > 2s in a ccz during a cell-to-cell contact')
+xlabel('Mean residence time in ccz of free TCRs (s)')
+axis([0 2 0 1])
+
+
+figure(6) %Fig 3h 
+semilogx(taoV,p,'b')
+hold on
+% Add a vectical line at tao = 0.68
+x=[0.68,0.68];
+y=[0,1];
+plot(x,y,'r')
+ylabel('Probability that a TCR stay longer than 2 sec')
+xlabel('Mean residence time in ccz of free TCRs (s)')
+
+
+
+%...................................................................
+%...................................................................
+%Supplementary figures 4c and 4d (check what happend for different diffusion rates)
+
+%%% Calc number of possible TCR passages (number of TCR that might trigger during a "real" cell-to-cell contact) %%%%%
+rV=0.01:0.01:100; % Different radius of ccz
+tao=rV.^2./(8.*D); % Time in CCZ
+TCR=100;% 100µm2 Density of TCR
+area=rV.^2.*pi; % Area of ccz
+numb_TCRs=TCR.*area; % Total number of TCR that an exist in a ccz
+numb_TCRs=numb_TCRs*10; % Assum that 10 ccz exist in a "real" cell-to-cell contact
+
+tot_time=3*60; % 3 min of a "real" cell-to-cell contact betweem T cell and APC
+TCRpassages2=round((tot_time./tao).*numb_TCRs); % Total number of TCRs that will exist in the cczs during the 3 min
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+p=exp(-tmin./tao); % Probability that a TCR stay longer than 2s in the ccz
+pr1=1 - binopdf(0,TCRpassages2,p); % % Prob that at least ONE TCR stay longer than 2s in the ccz in a real cell-to-cell contact that last 3 min
+
+% Calculate for D = 0.21
+%%% Calc number of possible TCR passages with D = 0.21
+D2=0.21; % Faster diffusion rate
+tao2=rV.^2./(8.*D2); % Time in CCZ
+
+TCRpassages3=round((tot_time./tao2).*numb_TCRs); % Total number of TCRs that will exist in the cczs during the 3 min
+p2=exp(-tmin./tao2);
+pr2=1 - binopdf(0,TCRpassages3,p2);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figure(7) %Supp figure 4c 
+plot(rV,pr1,'r')
+hold on
+plot(rV,pr2,'b') % Plot for D = 0.21
+ylabel('Probability that at least one TCR stay > 2s in a ccz during a cell-to-cell contact')
+xlabel('CCZ radius (µm)')
+axis([0 1 0 1])
+legend('D=0.05','D=0.21')
+
+
+figure(8) %Supp figure 4d 
+semilogx(rV,p,'r') % D = 0.05
+hold on
+semilogx(rV,p2,'b') % Plot for D = 0.21
+ylabel('Probability that a TCR stay longer than 2 sec')
+xlabel('CCZ radius (µm)')
+legend('D=0.05','D=0.21')
+
+
+%...................................................................
+%...................................................................
+
+%probability for LIT as time goes by for a cell-to-cell contact
+
+% If the size of the ccz is fixed, the probability the LIT will occur will
+% depend on time as we get more and more TCR passages. The above simulations used
+% the time 3 min for a cell to cell contact. However, we can change this
+% time for cell-to-cell contact
+
+D=0.05;
+%rR=0.15;
+rR=0.385; % r cannot be = 0.1 because Matlab cannot handle too small numbers
+taoR=rR.^2./(8.*D); % Time in CCZ
+TCR=100;% 100µm2 Density of TCR
+area=rR.^2.*pi; % Area of ccz
+numb_TCRs=TCR.*area; % Total number of TCR that an exist in a ccz
+numb_TCRs=numb_TCRs;%*10; % Assum that 10 ccz exist in a "real" cell-to-cell contact
+
+tot_timeR=logspace(-4,15); % Different time points
+
+%tot_timeR=logspace(3,15); % Different time points
+
+TCRpassagesR=round((tot_timeR./taoR).*numb_TCRs); % Total number of TCRs that will exist in the cczs during the 3 min
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pR=exp(-tmin./taoR); % Probability that a TCR stay longer than 2s in the ccz
+prR=1 - binopdf(0,TCRpassagesR,pR); % % Prob tha
+
+figure(9) %Supp figure 4d 
+semilogx(tot_timeR,prR,'b') % D = 0.05
+ylabel('Probability that at least one TCR stay > 2s in a ccz during a cell-to-cell contact')
+xlabel('time (s)')
+
+
+figure(10) %Supp figure 4d 
+semilogx(tot_timeR./(60*60*24*365),prR,'r') % D = 0.05
+
+ylabel('Probability that at least one TCR stay > 2s in a ccz during a cell-to-cell contact')
+xlabel('time (years)')
+
+
+%Figure 4g (probability for LIT dependent on diffusion coefficient)
+tmin =2;
+DV=0.001:0.01:100; % Different diffusion coefficient
+rV=[0.385 3];
+for i=1:2
+r=rV(i);
+
+tao=r.^2./(8.*DV); % Time in CCZ
+TCR=100*0.37;% 100µm2 Density of TCR - plus segregation!
+area=r.^2.*pi; % Area of ccz
+numb_TCRs=TCR.*area; % Total number of TCR that an exist in a ccz
+numb_TCRs=numb_TCRs;%*10; % Assum that 10 ccz exist in a "real" cell-to-cell contact
+
+tot_time=3*60; % 3 min of a "real" cell-to-cell contact betweem T cell and APC
+TCRpassages2=round((tot_time./tao).*numb_TCRs); % Total number of TCRs that will exist in the cczs during the 3 min
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+p=exp(-tmin./tao); % Probability that a TCR stay longer than 2s in the ccz
+pr1=1 - binopdf(0,TCRpassages2,p);
+
+figure(11)
+semilogx(DV,pr1,'k')
+hold on
+end
+% Add a vectical line at tao = 0.68
+x=[0.05,0.05];
+x2=[0.21 0.21];
+y=[0,1];
+plot(x,y,'r')
+plot(x2,y,'g')
+ylabel('Probability that a TCR stay longer than 2 sec')
+xlabel('Mean residence time in ccz of free TCRs (s)')
+
+
+
+%%% Calculate effect of different contact times
+D = 0.05;
+tmin = 2;
+rV=0.215; % Different radius of ccz
+tao=rV.^2./(8.*D); % Time in CCZ
+TCR=100*0.37;% 100µm2 Density of TCR
+area=rV.^2.*pi; % Area of ccz
+numb_TCRs=TCR.*area; % Total number of TCR that an exist in a ccz
+%numb_TCRs=numb_TCRs*10; % Assum that 10 ccz exist in a "real" cell-to-cell contact
+tot_timeV=[60 120 180];
+tot_time=tot_timeV; % 3 min of a "real" cell-to-cell contact betweem T cell and APC
+TCRpassages2=round((tot_time./tao).*numb_TCRs);  % Total number of TCRs that will exist in the cczs during the 3 min
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+p=exp(-tmin./tao);  % Probability that a TCR stay longer than 2s in the ccz
+pr1=1 - binopdf(0,TCRpassages2,p); % % Prob that at least ONE TCR stay longer than 2s in the ccz in a real cell-to-cell contact that last 3 min
+
+figure(12) 
+plot(rV,pr1(:,1),'r')
+hold on
+plot(rV,pr1(:,2),'b') 
+plot(rV,pr1(:,3),'g') 
+ylabel('Probability that at least one TCR stay > 2s in a ccz during a cell-to-cell contact')
+xlabel('CCZ radius (µm)')
+axis([0 1 0 1])
+legend('60s','120s','180s')
+
